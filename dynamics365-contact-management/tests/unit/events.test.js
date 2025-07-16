@@ -1,25 +1,40 @@
-import { onFormLoad, onFormSave, onFieldChange } from '../../src/events/Events';
+const { onFormLoad, onFormSave, onFieldChange } = require('../../src/events/Events');
 
 describe('Event Handlers', () => {
   let mockExecutionContext;
 
   beforeEach(() => {
+    // Mock global window object
+    global.window = {
+      ContactBusinessLogic: {
+        storeOriginalValues: jest.fn(),
+        showChangeConfirmation: jest.fn()
+      }
+    };
+    
     mockExecutionContext = {
       getEventArgs: jest.fn(),
       getFormContext: jest.fn(),
       getEventSource: jest.fn(),
     };
+    
+    // Mock console.log to avoid noise in tests
+    global.console = {
+      log: jest.fn(),
+      error: jest.fn()
+    };
+  });
+
+  afterEach(() => {
+    delete global.window;
+    delete global.console;
   });
 
   test('onFormLoad should store original values', () => {
-    const storeOriginalValuesMock = jest.fn();
-    window.ContactBusinessLogic = { storeOriginalValues: storeOriginalValuesMock };
-
     onFormLoad(mockExecutionContext);
 
-    expect(storeOriginalValuesMock).toHaveBeenCalledWith(mockExecutionContext);
-    console.log = jest.fn(); // Mock console.log
-    expect(console.log).toHaveBeenCalledWith("Contact form loaded - original values stored");
+    expect(global.window.ContactBusinessLogic.storeOriginalValues).toHaveBeenCalledWith(mockExecutionContext);
+    expect(global.console.log).toHaveBeenCalledWith("Contact form loaded - original values stored");
   });
 
   test('onFormSave should confirm save and execute', async () => {
@@ -39,16 +54,14 @@ describe('Event Handlers', () => {
 
     mockExecutionContext.getEventArgs.mockReturnValue({ preventDefault: preventDefaultMock });
     mockExecutionContext.getFormContext.mockReturnValue(formContextMock);
-    window.ContactBusinessLogic = {
-      showChangeConfirmation: jest.fn().mockResolvedValue(true),
-    };
+    global.window.ContactBusinessLogic.showChangeConfirmation.mockResolvedValue(true);
 
     await onFormSave(mockExecutionContext);
 
     expect(preventDefaultMock).toHaveBeenCalled();
+    expect(global.window.ContactBusinessLogic.showChangeConfirmation).toHaveBeenCalledWith(mockExecutionContext);
     expect(saveMock).toHaveBeenCalled();
-    console.log = jest.fn(); // Mock console.log
-    expect(console.log).toHaveBeenCalledWith("Save confirmed and executed");
+    expect(global.console.log).toHaveBeenCalledWith("Save confirmed and executed");
   });
 
   test('onFormSave should cancel save if user does not confirm', async () => {
@@ -62,16 +75,15 @@ describe('Event Handlers', () => {
 
     mockExecutionContext.getEventArgs.mockReturnValue({ preventDefault: preventDefaultMock });
     mockExecutionContext.getFormContext.mockReturnValue(formContextMock);
-    window.ContactBusinessLogic = {
-      showChangeConfirmation: jest.fn().mockResolvedValue(false),
-    };
+    global.window.ContactBusinessLogic.showChangeConfirmation.mockResolvedValue(false);
 
     await onFormSave(mockExecutionContext);
 
     expect(preventDefaultMock).toHaveBeenCalled();
+    expect(global.window.ContactBusinessLogic.showChangeConfirmation).toHaveBeenCalledWith(mockExecutionContext);
     expect(formContextMock.ui.setFormNotification).toHaveBeenCalledWith(
       "Changes were not saved.",
-      "warning",
+      "form",
       "save_cancelled"
     );
   });
@@ -82,10 +94,9 @@ describe('Event Handlers', () => {
     };
 
     mockExecutionContext.getEventSource.mockReturnValue(changedAttributeMock);
-    console.log = jest.fn(); // Mock console.log
 
     onFieldChange(mockExecutionContext);
 
-    expect(console.log).toHaveBeenCalledWith("Field changed: testField");
+    expect(global.console.log).toHaveBeenCalledWith("Field changed: testField");
   });
 });
