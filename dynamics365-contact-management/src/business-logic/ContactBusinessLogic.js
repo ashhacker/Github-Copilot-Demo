@@ -21,13 +21,50 @@ function formatContactData(contact) {
 // Function to store original values for comparison
 function storeOriginalValues(executionContext) {
   const formContext = executionContext.getFormContext();
-  const originalValues = {
-    firstName: formContext.getAttribute("firstname").getValue(),
-    lastName: formContext.getAttribute("lastname").getValue(),
-    email: formContext.getAttribute("email").getValue(),
-    phone: formContext.getAttribute("telephone1").getValue(),
-  };
+  const attributes = formContext.data.entity.attributes;
+  const originalValues = {};
+  attributes.forEach(function(attribute) {
+    originalValues[attribute.getName()] = attribute.getValue();
+  });
   window.ContactBusinessLogic.originalValues = originalValues;
+}
+
+// Function to show confirmation dialog if any attribute has changed
+async function showChangeConfirmation(executionContext) {
+  const formContext = executionContext.getFormContext();
+  const attributes = formContext.data.entity.attributes;
+  const originalValues = window.ContactBusinessLogic.originalValues || {};
+  let hasChanges = false;
+  let changedFields = [];
+
+  attributes.forEach(function(attribute) {
+    const name = attribute.getName();
+    const original = originalValues[name];
+    const current = attribute.getValue();
+    // Compare values (simple equality, can be enhanced for complex types)
+    if (original !== current) {
+      hasChanges = true;
+      changedFields.push(name);
+    }
+  });
+
+  if (hasChanges) {
+    // Show confirmation dialog (Dynamics 365 Xrm.Navigation)
+    if (window.Xrm && window.Xrm.Navigation && window.Xrm.Navigation.openConfirmDialog) {
+      const dialogOptions = {
+        title: "Confirm Save",
+        subtitle: "You have changed the following fields:",
+        text: changedFields.join(", ")
+      };
+      const result = await window.Xrm.Navigation.openConfirmDialog(dialogOptions);
+      return result.confirmed;
+    } else {
+      // Fallback: browser confirm
+      return window.confirm("You have changed the following fields: " + changedFields.join(", ") + ". Do you want to save?");
+    }
+  }
+  // No changes, allow save
+  return true;
 }
 
 // Exporting functions for use in other modules
@@ -35,4 +72,5 @@ window.ContactBusinessLogic = {
   validateContactData,
   formatContactData,
   storeOriginalValues,
+  showChangeConfirmation,
 };
