@@ -92,3 +92,13 @@ function registerContactEvents() {
   console.log("- onFormSave: Shows confirmation dialog for changed fields");
   console.log("- onFieldChange: Optional real-time field validation");
 }
+
+// Export functions for testing (when in Node.js environment)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    onFormLoad,
+    onFormSave,
+    onFieldChange,
+    registerContactEvents
+  };
+}
