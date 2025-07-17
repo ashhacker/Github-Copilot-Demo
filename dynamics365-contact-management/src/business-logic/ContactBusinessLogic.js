@@ -60,7 +60,7 @@ async function showChangeConfirmation(executionContext) {
       return result.confirmed;
     } else {
       // Fallback: browser confirm
-      return window.confirm("You have changed the following fields: " + changedFields.join(", ") + ". Do you want to save?");
+      return window.confirm("Do you really wish to update " + changedFields.join(", ") + "?");
     }
   }
   // No changes, allow save
@@ -68,9 +68,21 @@ async function showChangeConfirmation(executionContext) {
 }
 
 // Exporting functions for use in other modules
-window.ContactBusinessLogic = {
-  validateContactData,
-  formatContactData,
-  storeOriginalValues,
-  showChangeConfirmation,
-};
+if (typeof window !== 'undefined') {
+  window.ContactBusinessLogic = {
+    validateContactData,
+    formatContactData,
+    storeOriginalValues,
+    showChangeConfirmation,
+  };
+}
+
+// Export for Node.js/testing environment
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    validateContactData,
+    formatContactData,
+    storeOriginalValues,
+    showChangeConfirmation,
+  };
+}
